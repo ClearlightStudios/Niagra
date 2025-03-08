@@ -1,7 +1,7 @@
 import asyncio
 from fastapi import FastAPI
 from collections import defaultdict
-from atproto import AtUri, CAR, firehose_models, FirehoseSubscribeReposClient, models, parse_subscribe_repos_message, AsyncFirehoseSubscribeReposClient
+from atproto import AtUri, CAR, firehose_models,models, parse_subscribe_repos_message, AsyncFirehoseSubscribeReposClient
 from atproto.exceptions import FirehoseError
 
 _INTERESTED_RECORDS = {
@@ -72,13 +72,13 @@ async def _run(name: str, operations_callback, app: FastAPI, stream_stop_event: 
     print(f"Parsing commit {commit}")
     if not isinstance(commit, models.ComAtprotoSyncSubscribeRepos.Commit):
       return
-    if commit.seq % 20 == 0:
+    if commit.seq % 1 == 0:
       client.update_params(models.ComAtprotoSyncSubscribeRepos.Params(cursor=commit.seq))
       print("Updating cursor in database")
       async with app.state.pool.acquire() as conn:
         await conn.execute("UPDATE subscription_state SET cursor = $1 WHERE service = $2;", commit.seq, name)
       stream_stop_event.set()
-      client.stop()
+      await client.stop()
       return
     if not commit.blocks:
       return
